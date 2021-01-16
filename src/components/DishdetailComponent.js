@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import { Card, CardImg, CardText, CardBody, CardTitle, Breadcrumb, BreadcrumbItem, Button, Modal, ModalBody, ModalHeader, Col, Row, Label, Input } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { Control, LocalForm, Errors } from 'react-redux-form';
+import { Loading } from './LoadingComponent';
+
 
 const required = (val) => val && val.length;
 const maxLength = (len) => (val) => !(val) || (val.length <= len);
@@ -9,17 +11,70 @@ const minLength = (len) => (val) => val && (val.length >= len);
 const isNumber = (val) => !isNaN(Number(val));
 const validEmail = (val) => /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(val);
 
-class CommmentForm extends Component {
+
+function RenderDish({ dish }) {
+
+    if (dish != null) {
+
+        return (
+            <div className="col-12 col-md-5 m-1">
+                <Card>
+                    <CardImg width="100%" src={dish.image} alt={dish.name} />
+                    <CardBody>
+                        <CardTitle>{dish.name}</CardTitle>
+                        <CardText>{dish.description}</CardText>
+                    </CardBody>
+                </Card>
+            </div>
+        )
+
+    } else {
+        return (
+            <div></div>
+        );
+    }
+
+}
+
+
+
+function RenderComments({comments, addComment, dishId}) {
+
+    if (comments != null) {
+        return (
+            <div className="col-12 col-md-5 m-1">
+                <h4>Comments</h4>
+                <ul className="list-unstyled">
+                {comments.map((value, index) => {
+                        return <div key={index}>
+                            <li >{value.comment}</li><br></br>
+                            <li >--{value.author} , {new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).format(new Date(Date.parse(value.date)))}</li><br></br>
+                        </div>                    
+                    })}
+                </ul>
+                <CommentForm dishId={dishId} addComment={addComment} />
+            </div>
+        );
+    }
+    else 
+        return (
+            <div></div>
+        );
+    }
+
+
+class CommentForm extends Component {
 
     constructor(props) {
 
-        super(props)
-        this.state = {
-            isModalOpen: false
-        }
+        super(props);
+
         this.toggleModal = this.toggleModal.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
-
+        this.state = {
+            isNavOpen:false,
+            isModalOpen: false
+        };   
     }
 
     toggleModal() {
@@ -29,10 +84,8 @@ class CommmentForm extends Component {
     }
 
     handleSubmit(values) {
-
-        console.log("current State is: " + JSON.stringify(values));
-        alert("current State is: " + JSON.stringify(values));
-
+        this.toggleModal();
+        this.props.addComment(this.props.dishId, values.rating, values.author, values.comment);
     }
 
     render() {
@@ -45,7 +98,6 @@ class CommmentForm extends Component {
                     <ModalHeader toggle={this.toggleModal}>Submit Comment</ModalHeader>
                     <ModalBody>
                         <LocalForm onSubmit={(values) => this.handleSubmit(values)}>
-
                             <Row className="form-group">
                                 <Label htmlFor="rating" md={12} >Rating</Label>
                                 <Col md={12}>
@@ -95,64 +147,27 @@ class CommmentForm extends Component {
 }
 
 
-
-function RenderDish({ dish }) {
-
-    if (dish != null) {
-
-        return (
-            <div className="col-12 col-md-5 m-1">
-                <Card>
-                    <CardImg width="100%" src={dish.image} alt={dish.name} />
-                    <CardBody>
-                        <CardTitle>{dish.name}</CardTitle>
-                        <CardText>{dish.description}</CardText>
-                    </CardBody>
-                </Card>
-            </div>
-        )
-
-    } else {
-        return (
-            <div></div>
-        );
-    }
-
-}
-
-
-
-function RenderComments({ comments }) {
-
-    if (comments != null) {
-        return (
-            <div className="col-12 col-md-5 m-1">
-                <h4>Comments</h4>
-                <ul className="list-unstyled">
-                    {comments.map((value, index) => {
-                        return <div key={index}>
-                            <li >{value.comment}</li><br></br>
-                            <li >--{value.author} , {new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).format(new Date(Date.parse(value.date)))}</li><br></br>
-                        </div>
-                    })}
-                </ul>
-                <CommmentForm />
-            </div>
-        )
-
-    } else {
-        return (
-            <div></div>
-        );
-    }
-
-}
-
-
 const DishDetail = (props) => {
 
-
-    if (props.dish != null)
+    if (props.isLoading) {
+        return(
+            <div className="container">
+                <div className="row">            
+                    <Loading />
+                </div>
+            </div>
+        );
+    }
+    else if (props.errMess) {
+        return(
+            <div className="container">
+                <div className="row">            
+                    <h4>{props.errMess}</h4>
+                </div>
+            </div>
+        );
+    }
+    else if (props.dish != null) 
         return (
             <div className="container">
                 <div className="row">
@@ -166,7 +181,10 @@ const DishDetail = (props) => {
                 </div>
                 <div className="row">
                     <RenderDish dish={props.dish} />
-                    <RenderComments comments={props.comments} />
+                    <RenderComments comments={props.comments}
+                    addComment={props.addComment}
+                    dishId={props.dish.id}
+                />
                 </div>
             </div>
         )
